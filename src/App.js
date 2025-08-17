@@ -78,8 +78,14 @@ export default function App() {
         const parsed = JSON.parse(raw);
         if (parsed.apiBase) setApiBase(parsed.apiBase);
         if (parsed.model) setModel(parsed.model);
-        if (parsed.fields && Array.isArray(parsed.fields) && parsed.fields.length) {
-          setFields(parsed.fields.map(f => ({ ...f, loading: false, error: "" })));
+        if (
+          parsed.fields &&
+          Array.isArray(parsed.fields) &&
+          parsed.fields.length
+        ) {
+          setFields(
+            parsed.fields.map((f) => ({ ...f, loading: false, error: "" }))
+          );
         }
       }
     } catch {}
@@ -96,17 +102,23 @@ export default function App() {
   }, [apiBase, model, fields]);
 
   const runningCount = useMemo(
-    () => fields.filter(f => f.loading).length,
+    () => fields.filter((f) => f.loading).length,
     [fields]
   );
 
   const setField = (id, updater) =>
-    setFields(prev =>
-      prev.map(f => (f.id === id ? (typeof updater === "function" ? updater(f) : { ...f, ...updater }) : f))
+    setFields((prev) =>
+      prev.map((f) =>
+        f.id === id
+          ? typeof updater === "function"
+            ? updater(f)
+            : { ...f, ...updater }
+          : f
+      )
     );
 
   const addField = () => {
-    setFields(prev => [
+    setFields((prev) => [
       ...prev,
       {
         id: crypto.randomUUID(),
@@ -122,7 +134,7 @@ export default function App() {
   };
 
   const deleteField = (id) => {
-    setFields(prev => prev.filter(f => f.id !== id));
+    setFields((prev) => prev.filter((f) => f.id !== id));
     setSnack({ open: true, msg: "Field removed", sev: "info" });
   };
 
@@ -137,32 +149,34 @@ export default function App() {
 
   // --- API call ---
   const runField = async (id) => {
-    const field = fields.find(f => f.id === id);
+    const field = fields.find((f) => f.id === id);
     if (!field) return;
 
     if (!field.instruction?.trim()) {
-      setSnack({ open: true, msg: "Add an instruction first.", sev: "warning" });
+      setSnack({
+        open: true,
+        msg: "Add an instruction first.",
+        sev: "warning",
+      });
       return;
     }
 
     if (!field.input?.trim()) {
-      setSnack({ open: true, msg: "Add input text to process.", sev: "warning" });
+      setSnack({
+        open: true,
+        msg: "Add input text to process.",
+        sev: "warning",
+      });
       return;
     }
 
     setField(id, { loading: true, error: "" });
 
     try {
-      // Expect your backend to accept: { instruction, input, model }
-      // and respond with: { answer: string }
-      const res = await fetch(`${apiBase}/chat`, {
+      const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          instruction: field.instruction,
-          input: field.input,
-          model,
-        }),
+        body: JSON.stringify({ instruction: field.instruction, input: field.input, model }),
       });
 
       if (!res.ok) {
@@ -170,6 +184,7 @@ export default function App() {
         throw new Error(text || `HTTP ${res.status}`);
       }
       const data = await res.json();
+      console.log(data.answer);
       setField(id, { output: data.answer || "", loading: false, error: "" });
     } catch (err) {
       setField(id, { loading: false, error: err.message || "Request failed" });
@@ -178,7 +193,11 @@ export default function App() {
 
   return (
     <>
-      <AppBar position="sticky" elevation={0} sx={{ borderBottom: "1px solid rgba(0,0,0,0.08)" }}>
+      <AppBar
+        position="sticky"
+        elevation={0}
+        sx={{ borderBottom: "1px solid rgba(0,0,0,0.08)" }}
+      >
         <Toolbar sx={{ gap: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             GPT at Work
@@ -190,7 +209,11 @@ export default function App() {
             label="Model"
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            sx={{ minWidth: 170, background: "rgba(255,255,255,0.8)", borderRadius: 1 }}
+            sx={{
+              minWidth: 170,
+              background: "rgba(255,255,255,0.8)",
+              borderRadius: 1,
+            }}
           >
             {MODEL_OPTIONS.map((opt) => (
               <MenuItem value={opt.value} key={opt.value}>
@@ -203,7 +226,11 @@ export default function App() {
             label="API Base"
             value={apiBase}
             onChange={(e) => setApiBase(e.target.value)}
-            sx={{ minWidth: 240, background: "rgba(255,255,255,0.8)", borderRadius: 1 }}
+            sx={{
+              minWidth: 240,
+              background: "rgba(255,255,255,0.8)",
+              borderRadius: 1,
+            }}
             helperText="Your backend base path (e.g., /api)"
           />
           <Tooltip title="Add new field">
@@ -220,16 +247,32 @@ export default function App() {
             Multi-Field ChatGPT Processor
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Give each field its own <strong>instruction</strong> (system prompt) and <strong>input</strong>.
-            Click <em>Run</em> to process with your backend. Everything is saved locally.
+            Give each field its own <strong>instruction</strong> (system prompt)
+            and <strong>input</strong>. Click <em>Run</em> to process with your
+            backend. Everything is saved locally.
           </Typography>
         </Stack>
 
-        <Box sx={{ mt: 3, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 2 }}>
+        <Box
+          sx={{
+            mt: 3,
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
+            gap: 2,
+          }}
+        >
           {fields.map((f, idx) => (
-            <Card key={f.id} variant="outlined" sx={{ borderRadius: 3, overflow: "hidden" }}>
+            <Card
+              key={f.id}
+              variant="outlined"
+              sx={{ borderRadius: 3, overflow: "hidden" }}
+            >
               <CardContent sx={{ display: "grid", gap: 1.5 }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
+                >
                   <TextField
                     label="Label"
                     size="small"
@@ -238,7 +281,10 @@ export default function App() {
                     sx={{ flex: 1 }}
                   />
                   <Tooltip title="Remove field">
-                    <IconButton onClick={() => deleteField(f.id)} sx={{ ml: 1 }}>
+                    <IconButton
+                      onClick={() => deleteField(f.id)}
+                      sx={{ ml: 1 }}
+                    >
                       <DeleteOutlineIcon />
                     </IconButton>
                   </Tooltip>
@@ -247,7 +293,9 @@ export default function App() {
                 <TextField
                   label="Instruction (system prompt for this field)"
                   value={f.instruction}
-                  onChange={(e) => setField(f.id, { instruction: e.target.value })}
+                  onChange={(e) =>
+                    setField(f.id, { instruction: e.target.value })
+                  }
                   multiline
                   minRows={2}
                   placeholder="e.g., You rewrite text in plain English while preserving technical accuracy."
@@ -274,11 +322,15 @@ export default function App() {
                 />
 
                 {f.error ? (
-                  <Alert severity="error" sx={{ mt: 1 }}>{f.error}</Alert>
+                  <Alert severity="error" sx={{ mt: 1 }}>
+                    {f.error}
+                  </Alert>
                 ) : null}
               </CardContent>
 
-              <CardActions sx={{ px: 2, pb: 2, pt: 0, justifyContent: "space-between" }}>
+              <CardActions
+                sx={{ px: 2, pb: 2, pt: 0, justifyContent: "space-between" }}
+              >
                 <Button
                   variant="contained"
                   startIcon={<PlayArrowIcon />}
@@ -305,10 +357,15 @@ export default function App() {
 
         <Box sx={{ mt: 3, display: "flex", alignItems: "center", gap: 2 }}>
           <Typography variant="body2" color="text.secondary">
-            {fields.length} field(s) • {runningCount ? `Running: ${runningCount}` : "Idle"}
+            {fields.length} field(s) •{" "}
+            {runningCount ? `Running: ${runningCount}` : "Idle"}
           </Typography>
           <Box sx={{ flexGrow: 1 }} />
-          <Button variant="outlined" onClick={addField} startIcon={<AddCircleIcon />}>
+          <Button
+            variant="outlined"
+            onClick={addField}
+            startIcon={<AddCircleIcon />}
+          >
             Add Field
           </Button>
         </Box>
@@ -317,10 +374,14 @@ export default function App() {
       <Snackbar
         open={snack.open}
         autoHideDuration={2200}
-        onClose={() => setSnack(s => ({ ...s, open: false }))}
+        onClose={() => setSnack((s) => ({ ...s, open: false }))}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert severity={snack.sev} variant="filled" onClose={() => setSnack(s => ({ ...s, open: false }))}>
+        <Alert
+          severity={snack.sev}
+          variant="filled"
+          onClose={() => setSnack((s) => ({ ...s, open: false }))}
+        >
           {snack.msg}
         </Alert>
       </Snackbar>
