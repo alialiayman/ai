@@ -117,6 +117,31 @@ export default function App() {
       )
     );
 
+  // Track if instruction is being edited or should be shown
+  const [showInstructions, setShowInstructions] = useState(() => {
+    // By default, show for all fields if empty, else hide
+    return Object.fromEntries(
+      (fields || []).map((f) => [f.id, !f.instruction])
+    );
+  });
+
+  // Keep showInstructions in sync with fields
+  useEffect(() => {
+    setShowInstructions((prev) => {
+      const next = { ...prev };
+      fields.forEach((f) => {
+        if (!(f.id in next)) {
+          next[f.id] = !f.instruction;
+        }
+      });
+      // Remove deleted fields
+      Object.keys(next).forEach((id) => {
+        if (!fields.find((f) => f.id === id)) delete next[id];
+      });
+      return next;
+    });
+  }, [fields]);
+
   const addField = () => {
     setFields((prev) => [
       ...prev,
@@ -158,6 +183,7 @@ export default function App() {
         msg: "Add an instruction first.",
         sev: "warning",
       });
+      setShowInstructions((prev) => ({ ...prev, [id]: true }));
       return;
     }
 
@@ -184,8 +210,9 @@ export default function App() {
         throw new Error(text || `HTTP ${res.status}`);
       }
       const data = await res.json();
-      console.log(data.answer);
       setField(id, { output: data.answer || "", loading: false, error: "" });
+      // Hide instruction field after first run
+      setShowInstructions((prev) => ({ ...prev, [id]: false }));
     } catch (err) {
       setField(id, { loading: false, error: err.message || "Request failed" });
     }
@@ -290,16 +317,45 @@ export default function App() {
                   </Tooltip>
                 </Stack>
 
-                <TextField
-                  label="Instruction (system prompt for this field)"
-                  value={f.instruction}
-                  onChange={(e) =>
-                    setField(f.id, { instruction: e.target.value })
-                  }
-                  multiline
-                  minRows={2}
-                  placeholder="e.g., You rewrite text in plain English while preserving technical accuracy."
-                />
+                {showInstructions[f.id] ? (
+                  <Box sx={{ position: 'relative' }}>
+                    <TextField
+                      label="Instruction (system prompt for this field)"
+                      value={f.instruction}
+                      onChange={(e) => {
+                        setField(f.id, { instruction: e.target.value });
+                        // Keep visible while editing
+                        setShowInstructions((prev) => ({ ...prev, [f.id]: true }));
+                      }}
+                      multiline
+                      minRows={2}
+                      placeholder="e.g., You rewrite text in plain English while preserving technical accuracy."
+                      sx={{
+                        background: '#f5f7fa',
+                        borderRadius: 1,
+                        '& .MuiInputBase-root': { background: '#f5f7fa' },
+                        mb: 1,
+                      }}
+                    />
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      sx={{ position: 'absolute', top: 8, right: 8, zIndex: 2 }}
+                      onClick={() => setShowInstructions((prev) => ({ ...prev, [f.id]: false }))}
+                    >
+                      Hide
+                    </Button>
+                  </Box>
+                ) : (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    sx={{ mb: 1, alignSelf: 'flex-start' }}
+                    onClick={() => setShowInstructions((prev) => ({ ...prev, [f.id]: true }))}
+                  >
+                    Edit Instruction
+                  </Button>
+                )}
 
                 <TextField
                   label="Input"
